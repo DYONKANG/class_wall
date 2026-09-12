@@ -41,7 +41,10 @@ const provider = new GoogleAuthProvider();
 // ===================================================
 
 // 교사 UID 목록 (교사 사용자의 Firebase Auth UID를 아래 배열에 넣어주세요)
-const TEACHER_UIDS = ["VNzEn6K8qVdEKU0Ox4y5"];
+const TEACHER_UIDS = [];
+
+// Firestore 컬렉션 이름 (Firebase 콘솔에 생성된 컬렉션 ID)
+const MEMO_COLLECTION = "VNzEn6K8qVdEKU0Ox4y5";
 
 // 사용자 역할 확인 함수 (교사: 'T', 학생: 'S', 미로그인: null)
 function getUserRole(user) {
@@ -129,7 +132,7 @@ let memos = [];
 
 // 메모를 읽어 옵니다.
 function loadMemos() {
-  const memosQuery = query(collection(db, "memos"), orderBy("createdAt", "asc"));
+  const memosQuery = query(collection(db, MEMO_COLLECTION), orderBy("createdAt", "asc"));
   onSnapshot(memosQuery, function (snapshot) {
     memos = snapshot.docs.map(function (memoDoc) {
       return { id: memoDoc.id, ...memoDoc.data() };
@@ -148,7 +151,7 @@ async function addMemo(text) {
     return;
   }
   const role = getUserRole(user) || "S";
-  await addDoc(collection(db, "memos"), {
+  await addDoc(collection(db, MEMO_COLLECTION), {
     text: text,
     author: user ? (user.displayName || "익명") : "익명",
     uid: user ? user.uid : null,
@@ -164,7 +167,7 @@ async function deleteMemo(id) {
     alert("메모 삭제 권한은 교사(T)에게만 있습니다.");
     return;
   }
-  await deleteDoc(doc(db, "memos", id));
+  await deleteDoc(doc(db, MEMO_COLLECTION, id));
 }
 
 
