@@ -11,6 +11,13 @@ import {
   query,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
 // Firebase 콘솔에서 만든 이 웹 앱의 공개 설정입니다.
 const firebaseConfig = {
@@ -24,6 +31,62 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+// ===================================================
+// 구글 로그인 관련 기능
+// ===================================================
+
+const userArea = document.getElementById("userArea");
+
+// 로그인 상태 변경 감지
+onAuthStateChanged(auth, function (user) {
+  renderUserArea(user);
+});
+
+// 구글 로그인 실행
+async function loginWithGoogle() {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    console.error("로그인 실패:", error);
+    alert("로그인에 실패했습니다.");
+  }
+}
+
+// 로그아웃 실행
+async function logout() {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error("로그아웃 실패:", error);
+  }
+}
+
+// 로그인 영역 화면 그리기
+function renderUserArea(user) {
+  if (!userArea) return;
+  userArea.innerHTML = "";
+
+  if (user) {
+    // 로그인한 경우: 이름과 로그아웃 버튼 표시
+    const span = document.createElement("span");
+    span.textContent = `${user.displayName || "선생님"}님 환영합니다! `;
+    userArea.appendChild(span);
+
+    const logoutBtn = document.createElement("button");
+    logoutBtn.textContent = "로그아웃";
+    logoutBtn.addEventListener("click", logout);
+    userArea.appendChild(logoutBtn);
+  } else {
+    // 비로그인 상태인 경우: 구글 로그인 버튼 표시
+    const loginBtn = document.createElement("button");
+    loginBtn.textContent = "Google로 로그인";
+    loginBtn.addEventListener("click", loginWithGoogle);
+    userArea.appendChild(loginBtn);
+  }
+}
 
 // 메모 목록은 Firestore의 변경 내용을 받아 화면에 보여 줍니다.
 let memos = [];
@@ -49,8 +112,10 @@ function loadMemos() {
 
 // 메모를 새로 씁니다.
 async function addMemo(text) {
+  const user = auth.currentUser;
   await addDoc(collection(db, "memos"), {
     text: text,
+    author: user ? (user.displayName || "익명") : "익명",
     createdAt: serverTimestamp()
   });
 }
@@ -93,6 +158,16 @@ function makeMemo(memo) {
   const span = document.createElement("span");
   span.textContent = memo.text;
   div.appendChild(span);
+
+  // 작성자가 있으면 메모 하단에 표시합니다.
+  if (memo.author) {
+    const authorDiv = document.createElement("div");
+    authorDiv.style.fontSize = "12px";
+    authorDiv.style.color = "#777";
+    authorDiv.style.marginTop = "6px";
+    authorDiv.textContent = `- ${memo.author}`;
+    div.appendChild(authorDiv);
+  }
 
   return div;
 }
