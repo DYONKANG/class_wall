@@ -41,7 +41,7 @@ const provider = new GoogleAuthProvider();
 // ===================================================
 
 // 교사 UID 목록 (교사 사용자의 Firebase Auth UID를 아래 배열에 넣어주세요)
-const TEACHER_UIDS = [];
+const TEACHER_UIDS = ["VNzEn6K8qVdEKU0Ox4y5"];
 
 // 사용자 역할 확인 함수 (교사: 'T', 학생: 'S', 미로그인: null)
 function getUserRole(user) {
