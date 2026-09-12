@@ -43,8 +43,8 @@ const provider = new GoogleAuthProvider();
 // 교사 UID 목록 (교사 사용자의 Firebase Auth UID를 아래 배열에 넣어주세요)
 const TEACHER_UIDS = [];
 
-// Firestore 컬렉션 이름 (Firebase 콘솔에 생성된 컬렉션 ID)
-const MEMO_COLLECTION = "VNzEn6K8qVdEKU0Ox4y5";
+// Firestore 컬렉션 이름
+const MEMO_COLLECTION = "memos";
 
 // 사용자 역할 확인 함수 (교사: 'T', 학생: 'S', 미로그인: null)
 function getUserRole(user) {
@@ -310,6 +310,7 @@ input.addEventListener("keydown", async function (e) {
       input.value = "";
     } catch (error) {
       console.error("메모를 저장하지 못했습니다.", error);
+      alert("메모를 저장하지 못했습니다.\n\n오류 내용: " + (error.message || error));
     }
   }
 });
