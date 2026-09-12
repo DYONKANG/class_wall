@@ -1,54 +1,63 @@
-// ===================================================
-// 우리 반 담벼락 - 시작점
-//
-// 메모를 쓰면 올린 순서대로 담벼락에 붙습니다.
-// 지금은 데이터가 아래 배열에만 들어 있어서,
-// 브라우저를 새로고침하면 전부 사라집니다.
-// ===================================================
+// Firebase SDK는 브라우저에서 바로 불러옵니다.
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getFirestore,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
+// Firebase 콘솔에서 만든 이 웹 앱의 공개 설정입니다.
+const firebaseConfig = {
+  apiKey: "AIzaSyDZtq_jjSyZbl7jBR9o8QsPal1pcx0VmL8",
+  authDomain: "dyonk-113e7.firebaseapp.com",
+  projectId: "dyonk-113e7",
+  storageBucket: "dyonk-113e7.firebasestorage.app",
+  messagingSenderId: "168963957159",
+  appId: "1:168963957159:web:c9a3cd055a2eadd2589682"
+};
 
-// --- 메모 목록 ---
-// createdAt 은 메모를 쓴 시각(밀리초)입니다. 이 값으로 순서를 정합니다.
-let memos = [
-  { id: 1, text: "오늘 과학 시간에 한 실험이 재미있었다", createdAt: 1757030400000 },
-  { id: 2, text: "궁금한 점 - 물은 왜 100도에서 끓나요?", createdAt: 1757030500000 },
-  { id: 3, text: "모둠 친구들이 도와줘서 고마웠다", createdAt: 1757030600000 }
-];
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-let nextId = 4;  // 새 메모에 붙일 번호
+// 메모 목록은 Firestore의 변경 내용을 받아 화면에 보여 줍니다.
+let memos = [];
 
 
 // ===================================================
 // 데이터를 다루는 함수 세 개
-// 백엔드 1 시간에 이 세 개가 Firestore를 쓰는 코드로 바뀝니다.
+// Firestore를 쓰는 코드입니다.
 // ===================================================
 
 // 메모를 읽어 옵니다.
-// 백엔드 1: 여기가 Firestore에서 가져오는 코드로 바뀝니다.
-//           순서는 orderBy("createdAt") 으로 맞춥니다.
 function loadMemos() {
-  return memos.slice().sort(function (a, b) {
-    return a.createdAt - b.createdAt;
+  const memosQuery = query(collection(db, "memos"), orderBy("createdAt", "asc"));
+  onSnapshot(memosQuery, function (snapshot) {
+    memos = snapshot.docs.map(function (memoDoc) {
+      return { id: memoDoc.id, ...memoDoc.data() };
+    });
+    render();
+  }, function (error) {
+    console.error("메모를 불러오지 못했습니다.", error);
   });
 }
 
 // 메모를 새로 씁니다.
-// 백엔드 2: 여기에 "누가 썼는지"(uid)를 함께 저장하게 됩니다.
-function addMemo(text) {
-  memos.push({
-    id: nextId,
+async function addMemo(text) {
+  await addDoc(collection(db, "memos"), {
     text: text,
-    createdAt: Date.now()
+    createdAt: serverTimestamp()
   });
-  nextId = nextId + 1;
 }
 
 // 메모를 지웁니다.
-// 백엔드 2: 지금은 누구든 남의 메모를 지울 수 있습니다. 이걸 막는 것이 과제입니다.
-function deleteMemo(id) {
-  memos = memos.filter(function (memo) {
-    return memo.id !== id;
-  });
+async function deleteMemo(id) {
+  await deleteDoc(doc(db, "memos", id));
 }
 
 
@@ -60,7 +69,7 @@ function render() {
   const wall = document.getElementById("wall");
   wall.innerHTML = "";
 
-  loadMemos().forEach(function (memo) {
+  memos.forEach(function (memo) {
     wall.appendChild(makeMemo(memo));
   });
 }
@@ -72,10 +81,13 @@ function makeMemo(memo) {
 
   const del = document.createElement("button");
   del.textContent = "×";
-  del.onclick = function () {
-    deleteMemo(memo.id);
-    render();
-  };
+  del.addEventListener("click", async function () {
+    try {
+      await deleteMemo(memo.id);
+    } catch (error) {
+      console.error("메모를 지우지 못했습니다.", error);
+    }
+  });
   div.appendChild(del);
 
   const span = document.createElement("span");
@@ -92,21 +104,22 @@ function makeMemo(memo) {
 // ===================================================
 
 const input = document.getElementById("input");
-
-input.onkeydown = function (e) {
+input.addEventListener("keydown", async function (e) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
 
     const text = input.value.trim();
     if (text === "") return;
-
-    addMemo(text);
-    input.value = "";
-    render();
+    try {
+      await addMemo(text);
+      input.value = "";
+    } catch (error) {
+      console.error("메모를 저장하지 못했습니다.", error);
+    }
   }
-};
+});
 
 
-// 첫 화면 그리기
-render();
+// 첫 화면에서 Firestore의 메모를 읽습니다.
+loadMemos();
 input.focus();

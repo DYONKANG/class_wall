@@ -7,14 +7,31 @@
 - 메모 쓰기 (내용 쓰고 엔터)
 - 메모 지우기 (× 버튼)
 - 올린 순서대로 담벼락에 붙기
+- Firestore에 메모 저장하기
 
 ## 아직 안 되는 것
 
-- **저장.** 데이터는 `app.js` 안의 배열에만 있습니다. 새로고침하면 사라집니다.
-- **로그인.** 지금은 누구든 남의 메모를 지울 수 있습니다.
+- **로그인.** 지금은 누구든 메모를 지울 수 있습니다.
 - **AI 도우미.** `api/gemini.js`가 아직 비어 있습니다.
 
-이 세 가지를 오후 백엔드 시간에 붙입니다.
+## Firebase 콘솔에서 할 설정
+
+1. Firebase Console에서 **Firestore Database**를 만듭니다.
+2. 로그인 기능을 붙이기 전까지는 규칙 탭에 아래 규칙을 붙여 넣어 게시합니다. 메모 읽기·쓰기·삭제가 가능하고 수정은 막습니다.
+
+```text
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /memos/{memoId} {
+      allow read, create, delete: if true;
+      allow update: if false;
+    }
+  }
+}
+```
+
+> 이 규칙은 로그인 기능이 없어서 누구나 메모를 지울 수 있습니다. 실제 공개 서비스로 쓰기 전에는 로그인과 작성자별 보안 규칙을 추가해야 합니다.
 
 ## 실행 방법
 
