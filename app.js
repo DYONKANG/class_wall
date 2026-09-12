@@ -83,6 +83,58 @@ async function logout() {
   }
 }
 
+// ===================================================
+// Gemini AI 피드백 호출 함수 (교사 전용)
+// ===================================================
+async function getAiComment() {
+  const currentUser = auth.currentUser;
+  if (getUserRole(currentUser) !== "T") {
+    alert("AI 코멘트 기능은 교사(T)만 사용할 수 있습니다.");
+    return;
+  }
+
+  if (!memos || memos.length === 0) {
+    alert("담벼락에 게시된 메모가 없습니다.");
+    return;
+  }
+
+  const feedbackBox = document.getElementById("aiFeedbackBox");
+  const feedbackContent = document.getElementById("aiFeedbackContent");
+
+  if (feedbackBox && feedbackContent) {
+    feedbackBox.style.display = "block";
+    feedbackContent.textContent = "🤖 AI가 담벼락 메모들을 분석하여 피드백을 작성 중입니다...";
+  }
+
+  try {
+    // 학생 개인정보(UID, 이메일 등)는 제외하고 메모 텍스트 내용만 보냅니다.
+    const memoTexts = memos.map(function (m) { return m.text; });
+
+    const response = await fetch("/api/gemini", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ memos: memoTexts })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "AI 코멘트를 불러오지 못했습니다.");
+    }
+
+    if (feedbackContent) {
+      feedbackContent.textContent = data.comment;
+    }
+  } catch (error) {
+    console.error("AI 코멘트 오류:", error);
+    if (feedbackContent) {
+      feedbackContent.textContent = `오류 발생: ${error.message}`;
+    }
+  }
+}
+
 // 로그인 영역 화면 그리기 및 입력창 제어
 function renderUserArea(user) {
   if (!userArea) return;
@@ -107,6 +159,21 @@ function renderUserArea(user) {
     logoutBtn.textContent = "로그아웃";
     logoutBtn.addEventListener("click", logout);
     userArea.appendChild(logoutBtn);
+
+    // 교사(T) 전용 AI 총평 버튼
+    if (role === "T") {
+      const aiBtn = document.createElement("button");
+      aiBtn.textContent = "🤖 AI 총평 받기";
+      aiBtn.style.marginLeft = "10px";
+      aiBtn.style.backgroundColor = "#4f46e5";
+      aiBtn.style.color = "#ffffff";
+      aiBtn.style.border = "none";
+      aiBtn.style.padding = "4px 10px";
+      aiBtn.style.borderRadius = "4px";
+      aiBtn.style.cursor = "pointer";
+      aiBtn.addEventListener("click", getAiComment);
+      userArea.appendChild(aiBtn);
+    }
   } else {
     // 비로그인 상태인 경우: 입력창 비활성화 및 구글 로그인 버튼 표시
     if (input) {
